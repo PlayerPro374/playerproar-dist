@@ -22,7 +22,7 @@ skip() { echo -e "${YELLOW}  [--]${RESET} Saltato: $*"; }
 [[ $EUID -ne 0 ]] && { err "Eseguire come root."; exit 1; }
 
 INSTALL_DIR="/root/scripts/PlayerPROAR"
-LICENSE_SERVER_URL="https://megapanel.watchyour-back.com"
+LICENSE_SERVER_URL="https://license.watchyour-back.com"
 
 clear
 echo -e "${BOLD}${CYAN}"
@@ -270,7 +270,7 @@ rm -f /tmp/playerproar_stage.tar.gz
 [[ -d /tmp/stage ]] || err "Struttura pacchetto non trovata dopo estrazione."
 cp -r /tmp/stage/. "$INSTALL_DIR/"
 rm -rf /tmp/stage
-ok "File installati in $INSTALL_DIR\"
+ok "File installati in $INSTALL_DIR"
 
 # ════════════════════════════════════════════════════════════
 #  7. DIPENDENZE PYTHON
