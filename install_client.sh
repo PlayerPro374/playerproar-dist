@@ -168,6 +168,38 @@ apt-get install -y -qq python3 python3-pip python3-dev nginx openvpn \
 ok "Pacchetti installati"
 
 # ════════════════════════════════════════════════════════════
+#  FFMPEG 7 STATICO  (richiesto da PlayerPROAR per -decryption_key)
+# ════════════════════════════════════════════════════════════
+_FFMPEG_BIN=/usr/local/bin/ffmpeg
+_ff_need=1
+if [[ -x "$_FFMPEG_BIN" ]]; then
+  _ff_major="$("$_FFMPEG_BIN" -version 2>&1 | grep -oP 'version \K[0-9]+' | head -1)"
+  [[ "${_ff_major:-0}" -ge 7 ]] && _ff_need=0
+fi
+if [[ $_ff_need -eq 0 ]]; then
+  skip "ffmpeg $("$_FFMPEG_BIN" -version 2>&1 | grep -oP 'version \K[^ ]+' | head -1) gia presente in $_FFMPEG_BIN"
+else
+  step "FFMPEG 7  —  download static build"
+  _ff_arch=$(uname -m)
+  case "$_ff_arch" in
+    x86_64)  _ff_url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" ;;
+    aarch64) _ff_url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" ;;
+    *)       warn "Architettura $_ff_arch non supportata per ffmpeg statico"; _ff_url="" ;;
+  esac
+  if [[ -n "$_ff_url" ]]; then
+    wget -q "$_ff_url" -O /tmp/ffmpeg-release.tar.xz
+    tar -xf /tmp/ffmpeg-release.tar.xz -C /tmp/
+    _ff_dir=$(ls -d /tmp/ffmpeg-*-static 2>/dev/null | head -1)
+    cp "$_ff_dir/ffmpeg"  /usr/local/bin/ffmpeg
+    cp "$_ff_dir/ffprobe" /usr/local/bin/ffprobe
+    chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
+    rm -rf /tmp/ffmpeg-release.tar.xz "$_ff_dir"
+    ok "ffmpeg $(/usr/local/bin/ffmpeg -version 2>&1 | grep -oP 'version \K[^ ]+' | head -1) installato"
+  fi
+fi
+
+
+# ════════════════════════════════════════════════════════════
 #  6. DOWNLOAD + DECIFRA + INSTALLA PACCHETTO
 # ════════════════════════════════════════════════════════════
 step "6 / 11  —  DOWNLOAD PACCHETTO"
