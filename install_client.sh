@@ -212,8 +212,8 @@ HWEOF
 )
 info "HW hash: ${HW_HASH:0:16}..."
 
-# Richiedi token di download al license server
-info "Richiedo pacchetto al server di licenze..."
+# Richiedi build_key + URL download al license server
+info "Autorizzazione download dal server di licenze..."
 PKG_RESP=$(curl -s --connect-timeout 15 \
   -X POST "${LICENSE_SERVER_URL}/license/package" \
   -H "Content-Type: application/json" \
@@ -225,29 +225,28 @@ d=json.load(sys.stdin)
 print(d.get('error', d.get('detail',{}).get('error','') if isinstance(d.get('detail'),dict) else ''))
 " 2>/dev/null || echo "parse_error")
 
-if [[ "$PKG_ERROR" == "package_not_available" ]]; then
-  err "Pacchetto non ancora pronto sul server. Contatta il supporto."
-elif [[ "$PKG_ERROR" == "build_key_not_configured" ]]; then
+if [[ "$PKG_ERROR" == "build_key_not_configured" ]]; then
   err "Build key non configurata. Contatta il supporto."
 elif [[ "$PKG_ERROR" == "license_expired" ]]; then
   err "Licenza scaduta. Rinnova la licenza prima di installare."
 elif [[ "$PKG_ERROR" == "license_revoked" ]]; then
   err "Licenza revocata. Contatta il supporto."
+elif [[ "$PKG_ERROR" == "license_not_found" ]]; then
+  err "License key non trovata. Contatta il supporto."
 fi
 
-DOWNLOAD_TOKEN=$(echo "$PKG_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('download_token',''))" 2>/dev/null)
 BUILD_KEY=$(echo "$PKG_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('build_key',''))" 2>/dev/null)
-PKG_SIZE=$(echo "$PKG_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('package_size_mb','?'))" 2>/dev/null)
+DOWNLOAD_URL=$(echo "$PKG_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('download_url',''))" 2>/dev/null)
 
-[[ -z "$DOWNLOAD_TOKEN" ]] && err "Token download non ricevuto. Risposta: $PKG_RESP"
-[[ -z "$BUILD_KEY" ]]       && err "Build key non ricevuta dal server."
+[[ -z "$BUILD_KEY" ]]    && err "Build key non ricevuta. Risposta: $PKG_RESP"
+[[ -z "$DOWNLOAD_URL" ]] && err "URL download non ricevuto dal server."
 
-ok "Token download ricevuto — pacchetto ${PKG_SIZE} MB"
+ok "Autorizzato — scarico pacchetto da GitHub..."
 
-# Scarica il pacchetto .ppro
-info "Download pacchetto in corso (${PKG_SIZE} MB)..."
-curl --connect-timeout 30 --max-time 600 --progress-bar \
-  "${LICENSE_SERVER_URL}/license/download/${DOWNLOAD_TOKEN}" \
+# Scarica il pacchetto .ppro da GitHub
+info "Download da $DOWNLOAD_URL..."
+curl -L --connect-timeout 30 --max-time 600 --progress-bar \
+  "$DOWNLOAD_URL" \
   -o /tmp/playerproar.ppro
 
 [[ -f /tmp/playerproar.ppro && -s /tmp/playerproar.ppro ]] || \
